@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 use EchoFusion\AuthManager\Middleware\AuthenticateMiddleware;
 use EchoFusion\AuthManager\Middleware\GuestMiddleware;
+use EchoFusion\Framework\Http\Middleware\VerifyCsrfToken;
 use EchoFusion\SessionManager\Middleware\StartSessionMiddleware;
 
 return [
     // Run for every request, in this order. The first one wraps all the others.
     'core' => [
         StartSessionMiddleware::class,
+        VerifyCsrfToken::class, // forms must send the _token field (see README: CSRF protection)
     ],
 
     // Names you can use in a route: 'middlewares' => ['auth']

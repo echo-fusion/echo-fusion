@@ -33,14 +33,29 @@ config/
   middleware.php          global middleware and the names usable in a route
   events.php              listeners
   services.php            container definitions
-  templates.php  database.php  auth.php  session.php
+  templates.php  database.php  auth.php  session.php  console.php
   environments/           partial config merged on top for one environment (APP_ENV)
+bin/console               the command line: php bin/console
+database/migrations/      migration files (php bin/console migrate)
 public/index.php          the front controller: Application::create(...)->run()
 resources/templates/      templates (.tpl is the built-in language, .php is plain PHP)
 storage/                  cache, sessions, logs (writable)
 tests/                    feature tests that send requests through the application, no web server needed
 .env                      settings that change between machines (never commit it)
 ```
+
+## The command line
+
+```bash
+php bin/console                  # list the commands
+php bin/console route:list       # every route
+php bin/console make:controller Post
+php bin/console make:migration create_posts_table --create=posts
+php bin/console migrate          # run the migrations in database/migrations
+php bin/console serve            # development server
+```
+
+Forms need the CSRF token: add `<input type="hidden" name="_token" value="{{ csrf }}">` and pass `['csrf' => $request->csrfToken()]` to the template. Paths under `/api/` are exempt (`config/app.php`).
 
 ## Your first page
 
