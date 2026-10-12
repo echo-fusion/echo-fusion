@@ -6,7 +6,7 @@ use App\Providers\AppServiceProvider;
 use function EchoFusion\Framework\env;
 
 return [
-    'name' => env('APP_NAME', 'EchoFusion'),
+    'name' => env('APP_NAME', 'EchoFusion Blog'),
 
     // true shows exception details in the browser; keep it false in production
     'debug' => env('APP_DEBUG', false),

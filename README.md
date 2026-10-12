@@ -1,140 +1,106 @@
-# EchoFusion
+# EchoFusion Blog
 
-[![CI](https://github.com/echo-fusion/echo-fusion/actions/workflows/ci.yml/badge.svg)](https://github.com/echo-fusion/echo-fusion/actions/workflows/ci.yml) [![Packagist](https://img.shields.io/packagist/v/echo-fusion/echo-fusion.svg)](https://packagist.org/packages/echo-fusion/echo-fusion) [![PHP](https://img.shields.io/badge/php-8.1%20%7C%208.2%20%7C%208.3-777bb4.svg)](https://www.php.net) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+The EchoFusion skeleton with a small, complete application on top, built with the [EchoFusion framework](https://github.com/echo-fusion/framework): accounts, posts with create / edit / delete and drafts, search and pagination, an administration panel under `/admin`, CSRF-protected forms, flash messages, validation, a SQLite database filled by migrations, demo data, and a JSON API with token authentication.
 
-The application skeleton for the [EchoFusion framework](https://github.com/echo-fusion/framework): a ready folder structure, configuration, a front controller and example tests. Create a project and start writing your application.
+Read the code in this order: `config/routes.php`, `app/Http/Controllers/PostController.php`, `app/Repositories/PostRepository.php`, `resources/templates/posts/`.
 
-> Part of [EchoFusion](https://github.com/echo-fusion), a modular PHP framework built from small packages.
-
-## Installation
+## Install
 
 ```bash
-composer create-project echo-fusion/echo-fusion my-app
-cd my-app
-composer serve
+composer create-project echo-fusion/echo-fusion my-blog dev-blog
+cd my-blog
+composer serve                 # http://localhost:8000
 ```
 
-Open <http://localhost:8000>. `composer create-project` also copies `.env.example` to `.env`.
+`create-project` copies `.env`, creates the SQLite database (`php bin/console migrate`) and fills it with demo data (`php bin/console db:seed`: 3 accounts, 12 posts). The last argument, `dev-blog`, is the `blog` branch of the skeleton; without it you get the empty skeleton.
 
-## Requirements
+If you cloned the repository instead: `composer install && cp .env.example .env && php bin/console migrate && php bin/console db:seed`.
 
-* PHP 8.1, 8.2 or 8.3
-* ext-mbstring, ext-pdo (and the PDO driver of your database)
+Open <http://localhost:8000>. (`php bin/console serve --port=8080` picks another port.)
 
-## What you get
+### Demo accounts
 
-```
-app/
-  Http/Controllers/       controllers: built by the container, so ask for services in the constructor
-  Providers/              your service providers (AppServiceProvider is listed in config/app.php)
-config/
-  app.php                 name, debug, timezone, modules, providers, plugins
-  routes.php              the routes
-  middleware.php          global middleware and the names usable in a route
-  events.php              listeners
-  services.php            container definitions
-  templates.php  database.php  auth.php  session.php  console.php
-  environments/           partial config merged on top for one environment (APP_ENV)
-bin/console               the command line: php bin/console
-database/migrations/      migration files (php bin/console migrate)
-public/index.php          the front controller: Application::create(...)->run()
-resources/templates/      templates (.tpl is the built-in language, .php is plain PHP)
-storage/                  cache, sessions, logs (writable)
-tests/                    feature tests that send requests through the application, no web server needed
-.env                      settings that change between machines (never commit it)
-```
+`db:seed` creates these, all with the password `password` (local demos only):
 
-## The command line
+| Email | Role |
+| --- | --- |
+| `admin@example.com` | administrator: can open `/admin` |
+| `ann@example.com`, `bob@example.com` | authors |
+
+Or register your own account at `/register`: it is a regular user.
+
+## What to try
+
+| In the browser | What it shows |
+| --- | --- |
+| `/?q=routing&page=2` | search and pagination with `$request->string('q')` and `$request->int('page')` |
+| `/my-posts` | an author's own posts, drafts included |
+| the "Publish" checkbox | a draft is visible only to its author and to admins (everyone else gets 404) |
+| `/admin` (as admin) | dashboard, **posts** (search, create, edit, publish / unpublish, delete), **users** (make admin, delete) |
+| `/admin` (as author) | `403`: the `admin` middleware |
+| `/register`, `/login` | forms with CSRF token, validation errors that refill the form, session guard |
+| `/posts/create`, edit and delete on a post | routes behind the `auth` middleware, ownership check (403 for other people's posts) |
+| `/account` | creates an API token (shown once, stored as a SHA-256 hash) |
+| a post that does not exist | the error page template |
+
+## The JSON API
 
 ```bash
-php bin/console                  # list the commands
-php bin/console route:list       # every route
-php bin/console make:controller Post
-php bin/console make:migration create_posts_table --create=posts
-php bin/console migrate          # run the migrations in database/migrations
-php bin/console serve            # development server
+TOKEN=...   # from /account
+curl http://localhost:8000/api/posts?limit=5
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/me
+
+# JSON body
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+     -d '{"title":"Hello","body":"From curl"}' http://localhost:8000/api/posts
+
+# PUT / PATCH / DELETE: JSON or form-encoded bodies, both are read by $request->input()
+curl -X PUT   -H "Authorization: Bearer $TOKEN" -d 'title=New title&body=New text' http://localhost:8000/api/posts/1
+curl -X PATCH -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"title":"Only the title"}' http://localhost:8000/api/posts/1
+curl -X DELETE -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/posts/1
 ```
 
-Forms need the CSRF token: add `<input type="hidden" name="_token" value="{{ csrf }}">` and pass `['csrf' => $request->csrfToken()]` to the template. Paths under `/api/` are exempt (`config/app.php`).
+Add `-H "Accept: application/json"` to get errors as JSON instead of an HTML page.
 
-## Your first page
+## The admin area, step by step
 
-1. A route in `config/routes.php`:
+`config/routes.php` builds the admin routes with a small helper that adds the `/admin` prefix and the `['auth', 'admin']` middleware to a list of routes, so the rule lives in one place. `auth` makes sure somebody is signed in; `admin` (`App\Http\Middleware\RequireAdmin`) checks the role and throws `HttpException(403)`. Public pages that behave differently for admins (a draft, the Edit link) ask `App\Support\Access`.
 
-   ```php
-   'about' => ['method' => 'GET', 'path' => '/about', 'action' => [PageController::class, 'about']],
-   ```
+## Where the data of a request comes from
 
-2. A controller in `app/Http/Controllers/PageController.php`:
+A controller action asks for `EchoFusion\Framework\Http\Request` in its signature; the framework passes it in. No middleware is needed:
 
-   ```php
-   final class PageController
-   {
-       public function __construct(private readonly TemplateManagerInterface $templates) {}
-
-       public function about(): string
-       {
-           return $this->templates->render('about');
-       }
-   }
-   ```
-
-3. A template in `resources/templates/about.tpl`:
-
-   ```twig
-   {% extends "layouts/app" %}
-   {% block content %}<h1>About {{ appName }}</h1>{% endblock %}
-   ```
-
-An action can return text (HTML), an array or an object (JSON), `null` (an empty 204) or a PSR-7 response. Its arguments come from the signature: a parameter named like a placeholder in the path (`/posts/{id}` with `int $id`), the request, or any service.
+```php
+public function update(Request $request, int $id): array   // $id is the {id} of the route
+{
+    $request->query('page');          // ?page=2
+    $request->post('title');          // form field (POST, and also PUT / PATCH / DELETE forms)
+    $request->json('title');          // JSON body
+    $request->input('title');         // form, JSON or query: whatever the client sent
+    $request->only('title', 'body');  // several at once
+    $request->user();                 // the signed-in user (routes with the auth middleware)
+    $request->csrfToken();            // for forms
+}
+```
 
 ## Tests
 
 ```bash
-composer test         # PHPUnit
-composer cs-check     # code style
-composer cs-fix
+composer test
 ```
 
-`tests/TestCase.php` boots the application in the `testing` environment and gives you `$this->get('/path')`. Add a test for every page you add.
+`tests/AccessTest.php` covers the permission rules and the admin middleware. `tests/ApiTest.php` sends requests through the whole application (routing, middleware, controller, database) without a web server. It uses its own `storage/testing.sqlite`.
 
-## Going to production
+## Layout
 
-* Point the web server's document root at `public/` (never at the project root).
-* Set `APP_ENV=production` and `APP_DEBUG=false` (debug output shows file paths and code), and `SESSION_SECURE=true` behind HTTPS.
-* Make `storage/` writable by the web server.
-* Install with `composer install --no-dev --optimize-autoloader`.
-
-nginx:
-
-```nginx
-server {
-    root /var/www/my-app/public;
-    index index.php;
-
-    location / {
-        try_files $uri /index.php$is_args$args;
-    }
-
-    location ~ \.php$ {
-        include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_pass unix:/run/php/php-fpm.sock;
-    }
-}
 ```
-
-Apache works out of the box with `public/.htaccess` (needs `mod_rewrite`).
-
-## Learn more
-
-* [How the framework boots and handles a request](https://github.com/echo-fusion/framework#how-it-boots)
-* The packages it is built from: [routemanager](https://github.com/echo-fusion/routemanager), [templatemanager](https://github.com/echo-fusion/templatemanager), [databasemanager](https://github.com/echo-fusion/databasemanager), [authmanager](https://github.com/echo-fusion/authmanager), [eventmanager](https://github.com/echo-fusion/eventmanager) and more, listed in the [organization profile](https://github.com/echo-fusion)
-
-## Credits
-
-- [Amir Shadanfar](https://github.com/amir-shadanfar)
-
-## License
-
-The MIT License (MIT). Please see [LICENSE](LICENSE) for more information.
+app/Console/Commands/    db:seed
+app/Http/Controllers/    PostController, AuthController, AccountController, ApiController
+app/Http/Controllers/Admin/   the panel under /admin: Dashboard, Post, User
+app/Http/Middleware/     AuthenticateApi (the `auth` middleware with the token guard), RequireAdmin
+app/Repositories/        SQL lives here
+app/Support/             View (adds csrf, user, flash messages to every page), Redirect, Access (who may change what), PostValidator
+config/                  routes, middleware, auth guards, database ...
+database/migrations/     users and posts tables
+resources/templates/     layout, posts, auth, account
+```

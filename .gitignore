@@ -7,7 +7,7 @@
 /coverage*
 
 # runtime files
-/storage/database.sqlite
+/storage/*.sqlite
 
 # editors and OS
 .idea/
