@@ -1,6 +1,6 @@
 {
     "name": "echo-fusion/echo-fusion",
-    "description": "The EchoFusion application skeleton. Start a project with: composer create-project echo-fusion/echo-fusion my-app",
+    "description": "The EchoFusion skeleton with a complete example blog: accounts, posts, admin panel, JSON API. Install with: composer create-project echo-fusion/echo-fusion my-blog dev-blog",
     "keywords": [
         "framework",
         "skeleton",
@@ -22,7 +22,7 @@
     },
     "require": {
         "php": "~8.1.0 || ~8.2.0 || ~8.3.0",
-        "echo-fusion/framework": "^1.2"
+        "echo-fusion/framework": "^1.2.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
@@ -51,7 +51,12 @@
         "console": "@php bin/console",
         "test": "phpunit",
         "cs-fix": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
-        "cs-check": "php-cs-fixer fix --dry-run --diff"
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
+        "post-create-project-cmd": [
+            "@php bin/console migrate",
+            "@php bin/console db:seed",
+            "@php -r \"echo PHP_EOL . 'Your blog is ready. Start it with: composer serve   (then open http://localhost:8000)' . PHP_EOL;\""
+        ]
     },
     "scripts-descriptions": {
         "serve": "Start the PHP development server on http://localhost:8000",

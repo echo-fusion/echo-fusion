@@ -11,7 +11,7 @@ return [
 
     // variables every template can use
     'globals' => [
-        'appName' => env('APP_NAME', 'EchoFusion'),
+        'appName' => env('APP_NAME', 'EchoFusion Blog'),
     ],
 
     // .tpl is the built-in template language; .php are plain PHP templates. Add 'twig' => [] after `composer require twig/twig`.
