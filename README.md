@@ -16,6 +16,16 @@ composer serve
 
 Open <http://localhost:8000>. `composer create-project` also copies `.env.example` to `.env`.
 
+### Want to see a finished application first?
+
+```bash
+composer create-project echo-fusion/echo-fusion my-blog dev-blog
+cd my-blog
+composer serve
+```
+
+The last argument, `dev-blog`, is the `blog` branch of this repository: the same skeleton with a complete example on top (accounts, posts with drafts and search, an admin panel under `/admin`, a JSON API with tokens). The database is created and filled with demo data during the install; sign in as `admin@example.com` with the password `password`. [Tutorial: how the blog works](https://github.com/echo-fusion/framework/blob/main/docs/tutorial-blog.md).
+
 ## Requirements
 
 * PHP 8.1, 8.2 or 8.3
