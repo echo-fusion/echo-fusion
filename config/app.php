@@ -13,6 +13,9 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
+    // Paths that need no CSRF token: APIs that authenticate with a header token.
+    'csrf' => ['except' => ['/api/*']],
+
     // Modules add config, providers, routes and templates. Classes implementing ModuleInterface.
     'modules' => [],
 
